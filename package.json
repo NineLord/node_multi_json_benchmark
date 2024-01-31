@@ -1,0 +1,22 @@
+{
+  "name": "nodejs",
+  "version": "1.0.0",
+  "description": "Tests runtime of JSON serialization/deserialization and logic operations",
+  "main": "src/testJson/main.js",
+  "scripts": {
+    "start": "node ./src/testJson/main.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Shaked F",
+  "license": "ISC",
+  "dependencies": {
+    "commander": "^9.5.0",
+    "exceljs": "^4.3.0",
+    "os-utils": "^0.0.14",
+    "workerpool": "^6.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^18.13.0"
+  }
+}
