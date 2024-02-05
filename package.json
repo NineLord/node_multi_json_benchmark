@@ -5,6 +5,7 @@
   "main": "src/testJson/main.js",
   "scripts": {
     "start": "node ./src/testJson/main.js",
+    "start_bun": "bun run ./src/testJson/main.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
