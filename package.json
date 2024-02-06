@@ -6,8 +6,7 @@
   "scripts": {
     "start": "node --max-old-space-size=6144 ./src/testJson/main.js",
     "start_bun": "bun run ./src/testJson/main.js",
-    "start_bun_limit": "BUN_JSC_forceRAMSize=6144 bun run ./src/testJson/main.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start_bun_limit": "BUN_JSC_forceRAMSize=6144 bun run ./src/testJson/main.js"
   },
   "keywords": [],
   "author": "Shaked F",
