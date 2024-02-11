@@ -6,19 +6,17 @@
   "scripts": {
     "start": "IS_BUN=false node --max-old-space-size=6144 ./src/testJson/main.js",
     "start_bun": "IS_BUN=true bun run ./src/testJson/main.js",
-    "start_bun_limit": "IS_BUN=true BUN_JSC_forceRAMSize=6144 bun run ./src/testJson/main.js",
-    "bun_preinstall": "./preinstall.sh",
-    "bun_clean": "rm -rf bun_node_modules"
+    "start_bun_limit": "IS_BUN=true BUN_JSC_forceRAMSize=6144 bun run ./src/testJson/main.js"
   },
   "keywords": [],
   "author": "Shaked F",
   "license": "ISC",
   "dependencies": {
     "commander": "^9.5.0",
+    "dbly-linked-list": "^0.3.5",
     "exceljs": "^4.3.0",
     "os-utils": "^0.0.14",
-    "workerpool": "^6.4.0",
-    "poolifier-bun": "file:./bun_node_modules/poolifier-bun"
+    "workerpool": "^6.4.0"
   },
   "devDependencies": {
     "@types/node": "^18.13.0"

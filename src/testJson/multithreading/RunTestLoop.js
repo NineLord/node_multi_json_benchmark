@@ -26,7 +26,7 @@ class RunTestLoop {
 	 * @param {any} valueToSearch The value to be searched in the BFS/DFS tests.
 	 */
 	constructor(threadCount, testCount, valueToSearch) {
-		this.#threadPool = new ThreadPool(resolve(__dirname, './TestWorker.js'), threadCount);
+		this.#threadPool = new ThreadPool(threadCount, resolve(__dirname, './TestWorker.js'));
 		this.#testCount = testCount;
 		this.#valueToSearch = valueToSearch;
 		this.#hasAllTestBeenSubmitted = false;
