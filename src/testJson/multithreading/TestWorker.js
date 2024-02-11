@@ -1,8 +1,6 @@
 //#region Imports
-// 3rd Party
-const workerPool = require('workerpool');
-
 // Project
+const { ThreadPool } = require('../../utils/ThreadPool');
 const { generateJson } = require('../../jsonGenerate/Generator');
 const { breadthFirstSearch } = require('../../searchTree/breadthFirstSearch');
 const { depthFirstSearch } = require('../../searchTree/depthFirstSearch');
@@ -26,6 +24,6 @@ function serialize(input) {
 	return JSON.stringify(input);
 }
 
-workerPool.worker({
+ThreadPool.exportWorkerMethods({
 	generateJson, breadthFirstSearch, depthFirstSearch, deserialize, serialize
 });

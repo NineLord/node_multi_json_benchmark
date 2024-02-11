@@ -2,10 +2,8 @@
 // Node
 const { resolve } = require('path');
 
-// 3rd Party
-const workerPool = require('workerpool');
-
 // Project
+const { ThreadPool } = require('../../utils/ThreadPool');
 const Reporter = require('../Reporter');
 const reporter = Reporter.reporter;
 //#endregion
@@ -28,10 +26,7 @@ class RunTestLoop {
 	 * @param {any} valueToSearch The value to be searched in the BFS/DFS tests.
 	 */
 	constructor(threadCount, testCount, valueToSearch) {
-		this.#threadPool = workerPool.pool(resolve(__dirname, './TestWorker.js'), {
-			maxWorkers: threadCount,
-			minWorkers: threadCount
-		});
+		this.#threadPool = new ThreadPool(resolve(__dirname, './TestWorker.js'), threadCount);
 		this.#testCount = testCount;
 		this.#valueToSearch = valueToSearch;
 		this.#hasAllTestBeenSubmitted = false;
