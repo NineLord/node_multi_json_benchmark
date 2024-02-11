@@ -1,16 +1,19 @@
 const { ThreadPoolInterface } = require('./Interface');
-const { Worker, MessageChannel, MessagePort } = require('worker_threads');
+const { Worker } = require('worker_threads');
 
 class BunPool extends ThreadPoolInterface {
 
+    /** @type {boolean} */
+    #isDoneAcceptingExec;
     #queue;
-    #pool;
+    #idlePool;
+    #busyPool;
 
     /**
      * @inheritDoc
      */
     static exportWorkerMethods(methods) {
-        const { workerData: { parentPort } } = require('worker_threads');
+        const { parentPort } = require('worker_threads');
 
         let missions = Promise.resolve();
         let isStopAcceptingMissions = false;
@@ -27,7 +30,7 @@ class BunPool extends ThreadPoolInterface {
 
             if (isDone) {
                 isStopAcceptingMissions = true;
-                missions.finally(() => parentPort.close());
+                missions.finally(() => parentPort.close()); // Doesn't do anything in `bun`, only works in node.
             }
 
             if (isStopAcceptingMissions)
@@ -53,12 +56,21 @@ class BunPool extends ThreadPoolInterface {
      * @inheritDoc
      */
     constructor(threadCount, absolutePathToWorker) {
-        super(threadCount, absolutePathToWorker);
+        // noinspection JSCheckFunctionSignatures
+        super();
 
-        this.#pool = workerPool.pool(absolutePathToWorker, {
-            maxWorkers: threadCount,
-            minWorkers: threadCount
-        });
+        this.#isDoneAcceptingExec = false;
+        this.#queue = [];
+        this.#busyPool = [];
+        this.#idlePool = [];
+
+        for (let count = 0; count < threadCount; ++count) {
+            const worker = new Worker(absolutePathToWorker);
+            worker.on('message', result => {
+
+            });
+            this.#idlePool.push(worker);
+        }
     }
 
     /**

@@ -16,7 +16,8 @@ class WorkerPool extends ThreadPoolInterface {
      * @inheritDoc
      */
     constructor(threadCount, absolutePathToWorker) {
-        super(threadCount, absolutePathToWorker);
+        // noinspection JSCheckFunctionSignatures
+        super();
 
         this.#pool = workerPool.pool(absolutePathToWorker, {
             maxWorkers: threadCount,
