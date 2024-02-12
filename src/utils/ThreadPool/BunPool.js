@@ -54,15 +54,18 @@ class BunPool extends ThreadPoolInterface {
             message => {
                 const { workerId, messageId, isDone, functionName, args } = message;
 
+                if (isStopAcceptingMissions)
+                    throw new Error(`Worker received new mission after closing, method: ${functionName} ; isDone=${isDone}`);
+
                 if (isDone) {
                     isStopAcceptingMissions = true;
-                    parentPort.postMessage(BunPool.#createMessageToParent(workerId, messageId, undefined));
-                    missions.finally(() => parentPort.close()); // Doesn't do anything in `bun`, only works in node.
+                    missions = missions.then(() => {
+                        parentPort.postMessage(BunPool.#createMessageToParent(workerId, messageId, undefined));
+                        parentPort.close(); // Thread terminate itself in `node`, doesn't do anything in `bun`.
+                    });
                     return;
                 }
 
-                if (isStopAcceptingMissions)
-                    throw new Error(`Worker received new mission after closing, method: ${functionName}`);
                 if (!methods.hasOwnProperty(functionName))
                     throw new Error(`Worker does not have the following method: ${functionName}`);
                 if (typeof methods[functionName] !== 'function')
@@ -212,7 +215,7 @@ class BunPool extends ThreadPoolInterface {
 
         this.#isDoneAcceptingExec = true;
         return Promise.all(this.#wholePool.map(worker =>
-            new Promise(resolve => 
+            new Promise(resolve =>
                 this.#postMessageToWorker(worker, this.#messagePosterDone(resolve))
             )
         ));
