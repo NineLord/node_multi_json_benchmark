@@ -1,6 +1,6 @@
 const { resolve } = require('path');
 const { inspect } = require('util');
-process.env["IS_BUN"] = "true";
+process.env["IS_BUN"] = process.env["IS_BUN"] === undefined ? "true" : process.env["IS_BUN"];
 const { ThreadPool } = require('../src/utils/ThreadPool');
 
 /**
@@ -20,21 +20,34 @@ async function yieldToOtherPromises() {
     });
 }
 
+function getTime() {
+    return (new Date()).toISOString();
+}
+
 async function main() {
-    const pool = new ThreadPool(1, resolve(__dirname, './testWorker.js'));
-    console.log(`1+2=${await pool.exec('add', [1, 2])}`);
-    console.log(`3+4=${await pool.exec('add', [3, 4])}`);
-    console.log(`5+6=${await pool.exec('add', [5, 6])}`);
+    const pool = new ThreadPool(2, resolve(__dirname, './testWorker.js'));
+    console.log(`${getTime()} 1+2=${await pool.exec('add', [1, 2])}`);
+    console.log(`${getTime()} 3+4=${await pool.exec('add', [3, 4])}`);
+    console.log(`${getTime()} 5+6=${await pool.exec('add', [5, 6])}`);
 
     await sleep(1_000);
     await yieldToOtherPromises();
-    console.log('Finished sleeping');
+    console.log(`${getTime()} Finished sleeping`);
 
     const sleepAmount = 5_000;
-    console.log(`First race winner: ${inspect(await Promise.race([
-        pool.exec('sleep', [sleepAmount]),
-        pool.exec('busyWait', [sleepAmount]),
-        pool.exec('add', [8, 8]),
-    ]))}`);
+    const printAndReturn = prefix => {
+        return result => {
+            console.log(`${getTime()} ${prefix} :: result=${inspect(result)}`);
+            return result;
+        }
+    };
+    const all = inspect(await Promise.all([
+        pool.exec('sleep', [sleepAmount]).then(printAndReturn('sleep')),
+        pool.exec('busyWait', [sleepAmount]).then(printAndReturn('busyWait')),
+        pool.exec('add', [8, 8]).then(printAndReturn('8+8')),
+    ]));
+    console.log(`${getTime()} First race winner: ${all}`);
+
+    await pool.terminate();
 }
 main();

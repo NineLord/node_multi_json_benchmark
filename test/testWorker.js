@@ -1,4 +1,4 @@
-process.env["IS_BUN"] = "true";
+process.env["IS_BUN"] = process.env["IS_BUN"] === undefined ? "true" : process.env["IS_BUN"];
 const { ThreadPool } = require('../src/utils/ThreadPool');
 
 /**

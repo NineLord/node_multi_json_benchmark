@@ -107,6 +107,7 @@ class BunPool extends ThreadPoolInterface {
      */
     #messageHandler(messageToParent) {
         const { workerId, messageId, result } = messageToParent;
+        // console.log(`Shaked-TODO: messageHandler ; workerId=${workerId} ; messageId=${messageId} ; pending=${inspect(this.#pending)}`);
 
         const messages = this.#pending.get(workerId);
         if (messages === undefined)
@@ -127,15 +128,15 @@ class BunPool extends ThreadPoolInterface {
             throw new Error(`Worker handled message but wasn't in busy pool: id=${workerId} ; message=${messageId} ; pending=${inspect(this.#pending)}`);
         this.#busyPool.delete(workerId);
 
-        const missionNode = this.#queue.removeFirst();
-        if (missionNode === null) {
+        const messagePosterWithoutWorkerNode = this.#queue.removeFirst();
+        if (messagePosterWithoutWorkerNode === null) {
             this.#idlePool.push(worker);
             return;
         }
 
         /** @type {function(worker: BunWorker): void} */
-        const mission = missionNode.getData();
-        mission(worker);
+        const messagePosterWithoutWorker = messagePosterWithoutWorkerNode.getData();
+        this.#postMessageToWorker(worker, messagePosterWithoutWorker);
     }
 
     /**

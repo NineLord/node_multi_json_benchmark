@@ -15,6 +15,7 @@ class BunWorker extends Worker {
 
         this.#id = ++BunWorker.#counter;
         this.#messageIdCounter = 0;
+        // console.log(`Shaked-TODO: create worker ; workerId=${this.#id}`);
     }
 
     /**
@@ -52,6 +53,7 @@ class BunWorker extends Worker {
      */
     postExecMessage(functionName, args) {
         const messageId = ++this.#messageIdCounter;
+        // console.log(`Shaked-TODO: postExecMessage ; workerId=${this.#id} ; messageId=${messageId}`);
         this.postMessage(this.#createMessageToWorker(messageId, false, functionName, args));
         return messageId;
     }
