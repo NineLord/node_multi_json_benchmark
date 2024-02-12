@@ -25,7 +25,7 @@ function getTime() {
 }
 
 async function main() {
-    const pool = new ThreadPool(1, resolve(__dirname, './testWorker.js'));
+    const pool = new ThreadPool(2, resolve(__dirname, './testWorker.js'));
     console.log(`${getTime()} 1+2=${await pool.exec('add', [1, 2])} ; ${getTime()}`);
     console.log(`${getTime()} 3+4=${await pool.exec('add', [3, 4])} ; ${getTime()}`);
     console.log(`${getTime()} 5+6=${await pool.exec('add', [5, 6])} ; ${getTime()}`);
