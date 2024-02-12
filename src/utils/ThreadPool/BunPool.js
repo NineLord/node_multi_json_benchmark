@@ -9,7 +9,7 @@ class BunPool extends ThreadPoolInterface {
     #isDoneAcceptingExec;
     /** @type {DoublyLinkedList<function(worker: BunWorker, messages: Map<number, function>): (function(resolver: function))>} */
     #queue;
-    /** @type {BunWorker[]} */
+    /** @type {Map<number, BunWorker>} */
     #wholePool;
     /** @type {BunWorker[]} */
     #idlePool;
@@ -23,6 +23,7 @@ class BunPool extends ThreadPoolInterface {
      * @property {number} workerId 
      * @property {number} messageId 
      * @property {any} result 
+     * @property {boolean} isDone 
      */
 
     /**
@@ -30,13 +31,15 @@ class BunPool extends ThreadPoolInterface {
      * @param {number} workerId 
      * @param {number} messageId 
      * @param {any} result 
+     * @param {boolean} isDone
      * @returns {MessageToParent}
      */
-    static #createMessageToParent(workerId, messageId, result) {
+    static #createMessageToParent(workerId, messageId, result, isDone) {
         return {
             workerId,
             messageId,
-            result
+            result,
+            isDone
         };
     }
 
@@ -60,8 +63,8 @@ class BunPool extends ThreadPoolInterface {
                 if (isDone) {
                     isStopAcceptingMissions = true;
                     missions = missions.then(() => {
-                        parentPort.postMessage(BunPool.#createMessageToParent(workerId, messageId, undefined));
-                        parentPort.close(); // Thread terminate itself in `node`, doesn't do anything in `bun`.
+                        parentPort.postMessage(BunPool.#createMessageToParent(workerId, messageId, undefined, true));
+                        // parentPort.close(); // Thread terminate itself in `node`, doesn't do anything in `bun`.
                     });
                     return;
                 }
@@ -77,7 +80,7 @@ class BunPool extends ThreadPoolInterface {
                 missions = missions.then(() =>
                     mission()
                         .then(result =>
-                            parentPort.postMessage(BunPool.#createMessageToParent(workerId, messageId, result))
+                            parentPort.postMessage(BunPool.#createMessageToParent(workerId, messageId, result, false))
                         )
                 );
             });
@@ -94,7 +97,7 @@ class BunPool extends ThreadPoolInterface {
 
         this.#isDoneAcceptingExec = false;
         this.#queue = new DoublyLinkedList();
-        this.#wholePool = [];
+        this.#wholePool = new Map();
         this.#busyPool = new Map();
         this.#idlePool = [];
         this.#pending = new Map();
@@ -105,7 +108,7 @@ class BunPool extends ThreadPoolInterface {
             this.#pending.set(worker.id, new Map());
             worker.on('message', messageHandler);
             this.#idlePool.push(worker);
-            this.#wholePool.push(worker);
+            this.#wholePool.set(worker.id, worker);
         }
     }
 
@@ -113,8 +116,8 @@ class BunPool extends ThreadPoolInterface {
      * @param {MessageToParent} messageToParent 
      */
     #messageHandler(messageToParent) {
-        const { workerId, messageId, result } = messageToParent;
-        // console.log(`Shaked-TODO: messageHandler ; workerId=${workerId} ; messageId=${messageId} ; pending=${inspect(this.#pending)}`);
+        const { workerId, messageId, result, isDone } = messageToParent;
+        // console.log(`Shaked-TODO: messageHandler ; workerId=${workerId} ; messageId=${messageId} ; isDone=${isDone} ; pending=${inspect(this.#pending)}`);
 
         const messages = this.#pending.get(workerId);
         if (messages === undefined)
@@ -124,16 +127,24 @@ class BunPool extends ThreadPoolInterface {
         if (resolver === undefined)
             throw new Error(`Message isn't register: id=${workerId} ; message=${messageId}`);
 
-        resolver(result);
         messages.delete(messageId);
+        resolver(result);
 
-        if (messages.size !== 0)
+        if (messages.size !== 0) {
+            if (isDone)
+                throw new Error(`Worker has more missions but terminated before doing them: id=${workerId}`);
             return; // The thread has something else to do still, not giving him more missions.
+        }
 
         const worker = this.#busyPool.get(workerId);
         if (worker === undefined)
             throw new Error(`Worker handled message but wasn't in busy pool: id=${workerId} ; message=${messageId} ; pending=${inspect(this.#pending)}`);
         this.#busyPool.delete(workerId);
+
+        if (isDone) {
+            worker.terminate();
+            this.#wholePool.delete(workerId);
+        }
 
         const messagePosterWithoutWorkerNode = this.#queue.removeFirst();
         if (messagePosterWithoutWorkerNode === null) {
@@ -214,7 +225,7 @@ class BunPool extends ThreadPoolInterface {
             throw new Error(`Thread pool is already terminated`);
 
         this.#isDoneAcceptingExec = true;
-        return Promise.all(this.#wholePool.map(worker =>
+        return Promise.all(Object.values(Object.fromEntries(this.#wholePool)).map(worker =>
             new Promise(resolve =>
                 this.#postMessageToWorker(worker, this.#messagePosterDone(resolve))
             )
