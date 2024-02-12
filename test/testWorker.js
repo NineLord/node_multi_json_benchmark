@@ -28,8 +28,20 @@ function busyWait(amount) {
         ++count;
 }
 
+/**
+ * @param {number} amount 
+ * @param {number} a 
+ * @param {number} b 
+ * @returns {Promise<number>}
+ */
+async function sleepAndAdd(amount, a, b) {
+    await sleep(amount);
+    return add(a, b);
+}
+
 ThreadPool.exportWorkerMethods({
     add,
     sleep,
-    busyWait
+    busyWait,
+    sleepAndAdd
 });

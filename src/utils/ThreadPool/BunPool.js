@@ -10,6 +10,8 @@ class BunPool extends ThreadPoolInterface {
     /** @type {DoublyLinkedList<function(worker: BunWorker, messages: Map<number, function>): (function(resolver: function))>} */
     #queue;
     /** @type {BunWorker[]} */
+    #wholePool;
+    /** @type {BunWorker[]} */
     #idlePool;
     /** @type {Map<number, BunWorker>} */
     #busyPool;
@@ -89,6 +91,7 @@ class BunPool extends ThreadPoolInterface {
 
         this.#isDoneAcceptingExec = false;
         this.#queue = new DoublyLinkedList();
+        this.#wholePool = [];
         this.#busyPool = new Map();
         this.#idlePool = [];
         this.#pending = new Map();
@@ -99,6 +102,7 @@ class BunPool extends ThreadPoolInterface {
             this.#pending.set(worker.id, new Map());
             worker.on('message', messageHandler);
             this.#idlePool.push(worker);
+            this.#wholePool.push(worker);
         }
     }
 
@@ -134,9 +138,7 @@ class BunPool extends ThreadPoolInterface {
             return;
         }
 
-        /** @type {function(worker: BunWorker): void} */
-        const messagePosterWithoutWorker = messagePosterWithoutWorkerNode.getData();
-        this.#postMessageToWorker(worker, messagePosterWithoutWorker);
+        this.#postMessageToWorker(worker, messagePosterWithoutWorkerNode.getData());
     }
 
     /**
@@ -152,6 +154,21 @@ class BunPool extends ThreadPoolInterface {
                 throw new Error(`Worker isn't register: id=${worker.id}`);
 
             const messageId = worker.postExecMessage(methodName, args);
+            messages.set(messageId, resolve);
+        }).bind(this);
+    }
+
+    /**
+     * @param {function(): void} resolve
+     * @returns {function(worker: BunWorker): void}
+     */
+    #messagePosterDone(resolve) {
+        return (worker => {
+            const messages = this.#pending.get(worker.id);
+            if (messages === undefined)
+                throw new Error(`Worker isn't register: id=${worker.id}`);
+
+            const messageId = worker.postDoneMessage();
             messages.set(messageId, resolve);
         }).bind(this);
     }
@@ -190,7 +207,15 @@ class BunPool extends ThreadPoolInterface {
      * @inheritDoc
      */
     async terminate() {
-        // return this.#pool.terminate();
+        if (this.#isDoneAcceptingExec)
+            throw new Error(`Thread pool is already terminated`);
+
+        this.#isDoneAcceptingExec = true;
+        return Promise.all(this.#wholePool.map(worker =>
+            new Promise(resolve => 
+                this.#postMessageToWorker(worker, this.#messagePosterDone(resolve))
+            )
+        ));
     }
 }
 
